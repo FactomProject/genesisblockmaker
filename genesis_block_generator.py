@@ -126,7 +126,7 @@ def evaluate_purchases(purchases):
     index = 0
 
     f1=open('./genesis.csv', 'w')
-    f1.write('funding txid,conf time unix,conf time human,ed25519 pubkey,# bitcoins,rate,# factoshis\n')
+    f1.write('funding txid,conf time unix,conf time human,ed25519 pubkey,# bitcoins,rate,# factoshis,notes\n')
 
     for p in purchases:
         if p["time"] < start + initial_period:
@@ -144,7 +144,7 @@ def evaluate_purchases(purchases):
         f1.write(',')
         f1.write(str(p['time']))
         f1.write(',')
-        f1.write(datetime.fromtimestamp(p['time']).strftime('%Y-%m-%d %H:%M:%S'))
+        f1.write(datetime.fromtimestamp(p['time']).strftime('\"%Y-%b-%d %H:%M:%S\"'))
         f1.write(',')
         f1.write(str(p["addr"]))
         f1.write(',')
@@ -153,6 +153,7 @@ def evaluate_purchases(purchases):
         f1.write(str(rate))
         f1.write(',')
         f1.write(str(p["value"] * rate))
+        f1.write(',')
         f1.write('\n')
 
         index += 1
