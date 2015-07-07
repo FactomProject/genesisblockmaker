@@ -1,11 +1,10 @@
 package GenesisCSVParser
 
-import(
+import (
 	"encoding/json"
-	"strconv"
 	"regexp"
+	"strconv"
 )
-
 
 func String2Int64(s string) (int64, error) {
 	answer, err := strconv.ParseInt(s, 10, 64)
@@ -16,7 +15,7 @@ func String2Int64(s string) (int64, error) {
 }
 
 func IsHex(s string) bool {
-	matched, _:=regexp.MatchString("(?:0[xX])?[0-9a-fA-F]+", s)
+	matched, _ := regexp.MatchString("(?:0[xX])?[0-9a-fA-F]+", s)
 	return matched
 }
 

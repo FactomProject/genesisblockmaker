@@ -1,28 +1,28 @@
 package GenesisCSVParser
 
-import(
+import (
 	"encoding/csv"
-	"os"
 	"errors"
+	"os"
 )
 
 type Entry struct {
 	FundingTxID string `json:"funding txid,"`
 
-	ConfTime int64 `json:"conf time unix,"`
+	ConfTime      int64  `json:"conf time unix,"`
 	ConfTimeHuman string `json:"conf time human,"`
 
 	ED25519PubKey string `json:"ed25519 pubkey,"`
 
-	Bitcoins int64 `json:"# bitcoins,"`
-	Rate int64 `json:"rate,"`
+	Bitcoins  int64 `json:"# bitcoins,"`
+	Rate      int64 `json:"rate,"`
 	Factoshis int64 `json:"# factoshis,"`
 
 	Notes string `json:"notes,omitempty"`
 }
 
 func (e *Entry) Validate() error {
-	if len(e.FundingTxID)!=64 {
+	if len(e.FundingTxID) != 64 {
 		return errors.New("Invalid FundingTxID length")
 	}
 	if IsHex(e.FundingTxID) == false {
@@ -35,7 +35,7 @@ func (e *Entry) Validate() error {
 		return errors.New("ED25519PubKey is not a valid hexaadecimal number")
 	}
 
-	if e.Bitcoins * e.Rate != e.Factoshis {
+	if e.Bitcoins*e.Rate != e.Factoshis {
 		return errors.New("Factoshis don't add up")
 	}
 
@@ -60,30 +60,30 @@ func ParseFile(filePath string) ([]Entry, error) {
 	}
 
 	//Parse all of the entries
-	answer:=[]Entry{}
+	answer := []Entry{}
 	//skipping first entry with field names
-	for i := 1;i<len(rawCSVdata);i++ {
-		v:=rawCSVdata[i]
-		entry:=Entry{}
+	for i := 1; i < len(rawCSVdata); i++ {
+		v := rawCSVdata[i]
+		entry := Entry{}
 		entry.FundingTxID = v[0]
-		intVar, err:=String2Int64(v[1])
+		intVar, err := String2Int64(v[1])
 		if err != nil {
 			return nil, err
 		}
 		entry.ConfTime = intVar
 		entry.ConfTimeHuman = v[2]
 		entry.ED25519PubKey = v[3]
-		intVar, err=String2Int64(v[4])
+		intVar, err = String2Int64(v[4])
 		if err != nil {
 			return nil, err
 		}
 		entry.Bitcoins = intVar
-		intVar, err=String2Int64(v[5])
+		intVar, err = String2Int64(v[5])
 		if err != nil {
 			return nil, err
 		}
 		entry.Rate = intVar
-		intVar, err=String2Int64(v[6])
+		intVar, err = String2Int64(v[6])
 		if err != nil {
 			return nil, err
 		}
