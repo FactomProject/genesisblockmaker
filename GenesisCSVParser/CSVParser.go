@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/wallet"
 	"os"
 )
 
@@ -152,24 +153,82 @@ func EntriesToBalanceMap(entries []Entry) ([]Balance, error) {
 }
 
 var MaxOutputsPerTransaction int = 20
+var FactoshisPerEC uint64 = 1000
 
-func CreateTransactions(balances []Balance) []*factoid.Transaction {
-	answer := make([]*factoid.Transaction, 0, len(balances)/MaxOutputsPerTransaction+1)
+func CreateTransactions(balances []Balance) (factoid.ITransaction, []factoid.ITransaction, error) {
+	answer := make([]factoid.ITransaction, 0, len(balances)/MaxOutputsPerTransaction+1)
+	w := new(wallet.SCWallet)
+	w.Init()
+	inputAddress, err := w.GenerateFctAddress([]byte("Genesis"), 1, 1)
+	if err != nil {
+		return nil, nil, err
+	}
 	for i := 0; i < len(balances); i += MaxOutputsPerTransaction {
 		max := i + MaxOutputsPerTransaction
 		if max > len(balances) {
 			max = len(balances)
 		}
-		t := CreateTransaction(balances[i:max])
+		t, err := CreateTransaction(balances[i:max], w, inputAddress)
+		if err != nil {
+			return nil, nil, err
+		}
 		answer = append(answer, t)
 	}
-	return answer
+	genesis, err := CreateGenesisTransaction(answer, w, inputAddress)
+	if err != nil {
+		return nil, nil, err
+	}
+	return genesis, answer, nil
 }
 
-func CreateTransaction(balances []Balance) *factoid.Transaction {
-	t := new(factoid.Transaction)
+func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
+	t := w.CreateTransaction(0)
 	for _, v := range balances {
 		t.AddOutput(v.IAddress, v.FactoshiBalance)
 	}
-	return t
+	outputTotal, ok := t.TotalOutputs()
+	if ok == false {
+		return nil, errors.New("TotalOutputs returned false")
+	}
+
+	w.AddInput(t, address, outputTotal)
+
+	fees, err := t.CalculateFee(FactoshisPerEC)
+	if err != nil {
+		return nil, err
+	}
+
+	w.UpdateInput(t, 0, address, outputTotal+fees)
+
+	ok, err = w.SignInputs(t)
+	if ok == false {
+		return nil, errors.New("Unable to sign inputs")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+func CreateGenesisTransaction(transactions []factoid.ITransaction, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
+	//TODO: update for proper genesis transaction generation before launch
+	t := w.CreateTransaction(0)
+	var sum uint64 = 0
+	for _, v := range transactions {
+		input, ok := v.TotalInputs()
+		if ok == false {
+			return nil, errors.New("TotalInputs returned false")
+		}
+		sum += input
+	}
+	w.AddOutput(t, address, sum)
+
+	genesisAddress, err := ED25519PubKeyToIAddress("0000000000000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		return nil, err
+	}
+
+	w.AddInput(t, genesisAddress, sum)
+
+	return t, nil
 }

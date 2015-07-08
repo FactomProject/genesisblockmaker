@@ -14,8 +14,13 @@ func TestParseFile(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else {
-			txs := CreateTransactions(entries)
-			t.Log(EncodeJSONString(txs))
+			genesis, txs, err := CreateTransactions(entries)
+			if err != nil {
+				t.Error(err)
+			} else {
+				t.Log(EncodeJSONString(txs))
+				t.Log(EncodeJSONString(genesis))
+			}
 		}
 	}
 
