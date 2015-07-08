@@ -10,7 +10,7 @@ func TestEverything(t *testing.T) {
 		t.Error(err)
 	} else {
 		//t.Log(EntriesToJSON(resp[0:10]))
-		entries, err := EntriesToBalances(resp[:40])
+		entries, err := EntriesToBalances(resp)
 		if err != nil {
 			t.Error(err)
 		} else {

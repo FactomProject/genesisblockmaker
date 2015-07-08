@@ -123,6 +123,7 @@ func EntriesToBalances(entries []Entry) ([]Balance, error) {
 	balanceMap := map[string]Balance{}
 
 	for _, v := range entries {
+		//TODO: FIXME: figure out what is the correct way to handle the zero accounts
 		if v.ED25519PubKey == "0" {
 			v.ED25519PubKey = "0000000000000000000000000000000000000000000000000000000000000000"
 		}
@@ -152,9 +153,11 @@ func EntriesToBalances(entries []Entry) ([]Balance, error) {
 	return answer, nil
 }
 
-var MaxOutputsPerTransaction int = 20
+//TODO: double-check the magic numbers
+var MaxOutputsPerTransaction int = 250 //Hot many outputs will be included in each transaction to keep it under the size limit
 var FactoshisPerEC uint64 = 1000
 
+//Function that creates a set of transactions from the list of balances the users should receive, as well as the corresponding genesis transaction
 func CreateTransactions(balances []Balance) (factoid.ITransaction, []factoid.ITransaction, error) {
 	answer := make([]factoid.ITransaction, 0, len(balances)/MaxOutputsPerTransaction+1)
 	w := new(wallet.SCWallet)
@@ -181,6 +184,7 @@ func CreateTransactions(balances []Balance) (factoid.ITransaction, []factoid.ITr
 	return genesis, answer, nil
 }
 
+//Creates a transaction crediting the given users
 func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
 	t := w.CreateTransaction(0)
 	for _, v := range balances {
@@ -210,6 +214,7 @@ func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.I
 	return t, nil
 }
 
+//A placeholder function for creating the genesis transaction creating as many factoshis as are needed to credit the various accounts
 func CreateGenesisTransaction(transactions []factoid.ITransaction, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
 	//TODO: update for proper genesis transaction generation before launch
 	t := w.CreateTransaction(0)
