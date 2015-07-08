@@ -3,6 +3,7 @@ package GenesisCSVParser
 import (
 	"encoding/csv"
 	"errors"
+	"github.com/FactomProject/factoid"
 	"os"
 )
 
@@ -14,9 +15,9 @@ type Entry struct {
 
 	ED25519PubKey string `json:"ed25519 pubkey,"`
 
-	Bitcoins  int64 `json:"# bitcoins,"`
-	Rate      int64 `json:"rate,"`
-	Factoshis int64 `json:"# factoshis,"`
+	Bitcoins  uint64 `json:"# bitcoins,"`
+	Rate      uint64 `json:"rate,"`
+	Factoshis uint64 `json:"# factoshis,"`
 
 	Notes string `json:"notes,omitempty"`
 }
@@ -59,7 +60,11 @@ func ParseFile(filePath string) ([]Entry, error) {
 		return nil, err
 	}
 
-	//Parse all of the entries
+	//Parse all of the entries and return them
+	return ParseEntries(rawCSVdata)
+}
+
+func ParseEntries(rawCSVdata [][]string) ([]Entry, error) {
 	answer := []Entry{}
 	//skipping first entry with field names
 	for i := 1; i < len(rawCSVdata); i++ {
@@ -73,21 +78,21 @@ func ParseFile(filePath string) ([]Entry, error) {
 		entry.ConfTime = intVar
 		entry.ConfTimeHuman = v[2]
 		entry.ED25519PubKey = v[3]
-		intVar, err = String2Int64(v[4])
+		uintVar, err := String2UInt64(v[4])
 		if err != nil {
 			return nil, err
 		}
-		entry.Bitcoins = intVar
-		intVar, err = String2Int64(v[5])
+		entry.Bitcoins = uintVar
+		uintVar, err = String2UInt64(v[5])
 		if err != nil {
 			return nil, err
 		}
-		entry.Rate = intVar
-		intVar, err = String2Int64(v[6])
+		entry.Rate = uintVar
+		uintVar, err = String2UInt64(v[6])
 		if err != nil {
 			return nil, err
 		}
-		entry.Factoshis = intVar
+		entry.Factoshis = uintVar
 		entry.Notes = v[7]
 
 		//Validate the entry to make sure data is correct
@@ -98,11 +103,73 @@ func ParseFile(filePath string) ([]Entry, error) {
 
 		answer = append(answer, entry)
 	}
-
 	return answer, nil
 }
 
 //Function that converts an array of entries into JSON string
 func EntriesToJSON(entries []Entry) (string, error) {
 	return EncodeJSONString(entries)
+}
+
+type Balance struct {
+	ED25519PubKey   string
+	RCD             factoid.IRCD
+	IAddress        factoid.IAddress
+	FactoshiBalance uint64
+}
+
+func EntriesToBalanceMap(entries []Entry) ([]Balance, error) {
+	balanceMap := map[string]Balance{}
+
+	for _, v := range entries {
+		if v.ED25519PubKey == "0" {
+			v.ED25519PubKey = "0000000000000000000000000000000000000000000000000000000000000000"
+		}
+		balance, ok := balanceMap[v.ED25519PubKey]
+		if ok == false {
+			balance.ED25519PubKey = v.ED25519PubKey
+			iAddress, err := ED25519PubKeyToIAddress(v.ED25519PubKey)
+			if err != nil {
+				return nil, err
+			}
+			balance.IAddress = iAddress
+			rcd, err := factoid.NewRCD_2(1, 1, []factoid.IAddress{iAddress})
+			if err != nil {
+				return nil, err
+			}
+			balance.RCD = rcd
+		}
+		balance.FactoshiBalance += v.Factoshis
+		balanceMap[v.ED25519PubKey] = balance
+	}
+
+	answer := make([]Balance, 0, len(balanceMap))
+	for _, v := range balanceMap {
+		answer = append(answer, v)
+	}
+
+	return answer, nil
+}
+
+var MaxOutputsPerTransaction int = 20
+
+func CreateTransactions(balances []Balance) []*factoid.Transaction {
+	answer := make([]*factoid.Transaction, 0, len(balances)/MaxOutputsPerTransaction+1)
+	for i := 0; i < len(balances); i += MaxOutputsPerTransaction {
+		max := i + MaxOutputsPerTransaction
+		if max > len(balances) {
+			max = len(balances)
+		}
+		t := CreateTransaction(balances[i:max])
+		answer = append(answer, t)
+	}
+	return answer
+}
+
+func CreateTransaction(balances []Balance) *factoid.Transaction {
+	t := new(factoid.Transaction)
+	for _, v := range balances {
+		t.AddOutput(v.IAddress, v.FactoshiBalance)
+	}
+	return t
 }
