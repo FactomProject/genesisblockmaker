@@ -119,7 +119,7 @@ type Balance struct {
 	FactoshiBalance uint64
 }
 
-func EntriesToBalanceMap(entries []Entry) ([]Balance, error) {
+func EntriesToBalances(entries []Entry) ([]Balance, error) {
 	balanceMap := map[string]Balance{}
 
 	for _, v := range entries {
