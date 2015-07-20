@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/factoid/wallet"
 	"os"
 )
@@ -158,7 +159,7 @@ var MaxOutputsPerTransaction int = 250 //Hot many outputs will be included in ea
 var FactoshisPerEC uint64 = 1000
 
 //Function that creates a set of transactions from the list of balances the users should receive, as well as the corresponding genesis transaction
-func CreateTransactions(balances []Balance) (factoid.ITransaction, []factoid.ITransaction, error) {
+func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransaction, error) {
 	answer := make([]factoid.ITransaction, 0, len(balances)/MaxOutputsPerTransaction+1)
 	w := new(wallet.SCWallet)
 	w.Init()
@@ -177,7 +178,7 @@ func CreateTransactions(balances []Balance) (factoid.ITransaction, []factoid.ITr
 		}
 		answer = append(answer, t)
 	}
-	genesis, err := CreateGenesisTransaction(answer, w, inputAddress)
+	genesis, err := GetGenesisBlock(0, answer, w, inputAddress)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -190,9 +191,9 @@ func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.I
 	for _, v := range balances {
 		t.AddOutput(v.IAddress, v.FactoshiBalance)
 	}
-	outputTotal, ok := t.TotalOutputs()
-	if ok == false {
-		return nil, errors.New("TotalOutputs returned false")
+	outputTotal, err := t.TotalOutputs()
+	if err != nil {
+		return nil, err
 	}
 
 	w.AddInput(t, address, outputTotal)
@@ -204,7 +205,7 @@ func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.I
 
 	w.UpdateInput(t, 0, address, outputTotal+fees)
 
-	ok, err = w.SignInputs(t)
+	ok, err := w.SignInputs(t)
 	if ok == false {
 		return nil, errors.New("Unable to sign inputs")
 	}
@@ -214,6 +215,7 @@ func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.I
 	return t, nil
 }
 
+/*
 //A placeholder function for creating the genesis transaction creating as many factoshis as are needed to credit the various accounts
 func CreateGenesisTransaction(transactions []factoid.ITransaction, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
 	//TODO: update for proper genesis transaction generation before launch
@@ -236,4 +238,27 @@ func CreateGenesisTransaction(transactions []factoid.ITransaction, w *wallet.SCW
 	w.AddInput(t, genesisAddress, sum)
 
 	return t, nil
+}*/
+
+func GetGenesisBlock(ftime uint64, transactions []factoid.ITransaction, w *wallet.SCWallet, address factoid.IAddress) (block.IFBlock, error) {
+	genesisBlock := block.NewFBlock(1000000, uint32(0))
+
+	t := w.CreateTransaction(ftime)
+	var sum uint64 = 0
+	for _, v := range transactions {
+		input, err := v.TotalInputs()
+		if err != nil {
+			return nil, err
+		}
+		sum += input
+	}
+	w.AddOutput(t, address, sum)
+
+	err := genesisBlock.AddCoinbase(t)
+	if err != nil {
+		return nil, err
+	}
+	genesisBlock.GetHash()
+
+	return genesisBlock, nil
 }
