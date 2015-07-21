@@ -1,4 +1,4 @@
-package GenesisCSVParser
+package main
 
 import (
 	"encoding/csv"
@@ -156,16 +156,16 @@ func EntriesToBalances(entries []Entry) ([]Balance, error) {
 
 //TODO: double-check the magic numbers
 var MaxOutputsPerTransaction int = 250 //Hot many outputs will be included in each transaction to keep it under the size limit
-var FactoshisPerEC uint64 = 1000
+var FactoshisPerEC uint64 = 1000000
 
 //Function that creates a set of transactions from the list of balances the users should receive, as well as the corresponding genesis transaction
-func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransaction, error) {
+func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransaction, *wallet.SCWallet, error) {
 	answer := make([]factoid.ITransaction, 0, len(balances)/MaxOutputsPerTransaction+1)
 	w := new(wallet.SCWallet)
 	w.Init()
 	inputAddress, err := w.GenerateFctAddress([]byte("Genesis"), 1, 1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	for i := 0; i < len(balances); i += MaxOutputsPerTransaction {
 		max := i + MaxOutputsPerTransaction
@@ -174,15 +174,15 @@ func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransacti
 		}
 		t, err := CreateTransaction(balances[i:max], w, inputAddress)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		answer = append(answer, t)
 	}
 	genesis, err := GetGenesisBlock(0, answer, w, inputAddress)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return genesis, answer, nil
+	return genesis, answer, w, nil
 }
 
 //Creates a transaction crediting the given users
@@ -258,6 +258,14 @@ func GetGenesisBlock(ftime uint64, transactions []factoid.ITransaction, w *walle
 	if err != nil {
 		return nil, err
 	}
+
+	for _, v := range transactions {
+		err = genesisBlock.AddTransaction(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	genesisBlock.GetHash()
 
 	return genesisBlock, nil

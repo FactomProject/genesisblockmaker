@@ -1,4 +1,4 @@
-package GenesisCSVParser
+package main
 
 import (
 	"testing"

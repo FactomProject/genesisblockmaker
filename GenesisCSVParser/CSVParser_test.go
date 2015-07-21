@@ -1,4 +1,4 @@
-package GenesisCSVParser
+package main
 
 import (
 	"testing"
@@ -14,12 +14,19 @@ func TestEverything(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else {
-			genesis, txs, err := CreateTransactions(entries)
+			genesis, _, _, err := CreateTransactions(entries)
 			if err != nil {
 				t.Error(err)
 			} else {
-				t.Log(EncodeJSONString(txs))
-				t.Log(EncodeJSONString(genesis))
+				//t.Log(EncodeJSONString(txs))
+				//t.Log(EncodeJSONString(genesis))
+				bin, err := genesis.MarshalBinary()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				t.Log("Hash - %X", genesis.GetHash().Bytes())
+				t.Log("Body - %X", bin)
 			}
 		}
 	}
@@ -118,7 +125,7 @@ func TestCreateTransactions(t *testing.T) {
 		t.FailNow()
 	}
 	MaxOutputsPerTransaction = 2
-	_, txs, err := CreateTransactions(balances)
+	_, txs, _, err := CreateTransactions(balances)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
