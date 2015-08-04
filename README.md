@@ -11,3 +11,6 @@ Important files:
 Note: Some of the transactions did not specify a pubkey and some specified the wrong pubkey.  Koinify is providing the correct ed25519 pubkeys which will be updated in genesis.csv.
 
 
+# How to build genesis block
+
+Go into /GenesisCSVParser . Compile the code, run it. The genesis block will be printed into Genesis.txt . The test genesis block (with extra balances taken from testing.csv) will be printed into TestGenesis.txt .
