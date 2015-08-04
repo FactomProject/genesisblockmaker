@@ -25,6 +25,7 @@ func main() {
 	}
 	log.Printf("Genesis Hash - %X", genesis.GetHash().Bytes())
 	WriteToFile("Genesis.txt", hex.EncodeToString(bin))
+	WriteToFile("GenesisBrokenDown.txt", BreakTextDown(hex.EncodeToString(bin), 120))
 	WriteToFile("Wallet.txt", "TODO: dump wallet")
 
 	//Genesis block for testing
@@ -48,9 +49,27 @@ func main() {
 
 	log.Printf("Test genesis Hash - %X", genesis2.GetHash().Bytes())
 	WriteToFile("TestGenesis.txt", hex.EncodeToString(bin2))
+	WriteToFile("TestGenesisBrokenDown.txt", BreakTextDown(hex.EncodeToString(bin2), 120))
 	WriteToFile("TestWallet.txt", "TODO: dump wallet")
 }
 
 func WriteToFile(filename, content string) {
 	ioutil.WriteFile(filename, []byte(content), 0777)
+}
+
+func BreakTextDown(text string, charactersPerLine int) string {
+	var answer string = ""
+	max:=0
+	for ;; {
+		min:=max
+		max+=charactersPerLine
+		if max>=len(text) {
+			max = len(text)
+			answer = answer + "\"" + text[min:max] + "\"\n"
+			break
+		} else {
+			answer = answer + "\"" + text[min:max] + "\" +\n"
+		}
+	}
+	return answer
 }
