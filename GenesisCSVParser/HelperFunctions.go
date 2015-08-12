@@ -41,5 +41,6 @@ func ED25519PubKeyToIAddress(ed25519PubKey string) (factoid.IAddress, error) {
 	if err != nil {
 		return nil, err
 	}
-	return factoid.NewAddress(hex), nil
+	ircd:=factoid.NewRCD_1(hex)
+	return ircd.GetAddress()
 }
