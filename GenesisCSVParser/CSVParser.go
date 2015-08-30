@@ -2,12 +2,16 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/hex"
 	"errors"
 	"github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/factoid/wallet"
 	"os"
 )
+
+//set to epoch time of genesis in second resolution
+var GenesisTime uint64 = 1441108800
 
 type Entry struct {
 	FundingTxID string `json:"funding txid,"`
@@ -136,10 +140,12 @@ func EntriesToBalances(entries []Entry) ([]Balance, error) {
 				return nil, err
 			}
 			balance.IAddress = iAddress
-			rcd, err := factoid.NewRCD_2(1, 1, []factoid.IAddress{iAddress})
+			pubKeyBin, err := hex.DecodeString(v.ED25519PubKey)
 			if err != nil {
 				return nil, err
 			}
+			rcd := factoid.NewRCD_1(pubKeyBin)
+
 			balance.RCD = rcd
 		}
 		balance.FactoshiBalance += v.Factoshis
@@ -156,7 +162,8 @@ func EntriesToBalances(entries []Entry) ([]Balance, error) {
 
 //TODO: double-check the magic numbers
 var MaxOutputsPerTransaction int = 250 //Hot many outputs will be included in each transaction to keep it under the size limit
-var FactoshisPerEC uint64 = 1000000
+var FactoshisPerEC uint64 = 666600
+
 
 //Function that creates a set of transactions from the list of balances the users should receive, as well as the corresponding genesis transaction
 func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransaction, *wallet.SCWallet, error) {
@@ -178,7 +185,7 @@ func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransacti
 		}
 		answer = append(answer, t)
 	}
-	genesis, err := GetGenesisBlock(0, answer, w, inputAddress)
+	genesis, err := GetGenesisBlock((GenesisTime * 1000), answer, w, inputAddress)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -187,7 +194,7 @@ func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransacti
 
 //Creates a transaction crediting the given users
 func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
-	t := w.CreateTransaction(0)
+	t := w.CreateTransaction(GenesisTime * 1000)
 	for _, v := range balances {
 		t.AddOutput(v.IAddress, v.FactoshiBalance)
 	}
@@ -241,7 +248,7 @@ func CreateGenesisTransaction(transactions []factoid.ITransaction, w *wallet.SCW
 }*/
 
 func GetGenesisBlock(ftime uint64, transactions []factoid.ITransaction, w *wallet.SCWallet, address factoid.IAddress) (block.IFBlock, error) {
-	genesisBlock := block.NewFBlock(1000000, uint32(0))
+	genesisBlock := block.NewFBlock(FactoshisPerEC, uint32(0))
 
 	t := w.CreateTransaction(ftime)
 	var sum uint64 = 0
