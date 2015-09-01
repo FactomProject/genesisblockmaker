@@ -204,7 +204,7 @@ func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransacti
 //Creates a transaction crediting the given users
 func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
 	t := w.CreateTransaction(GenesisTime * 1000)
-	t.SetMilliTimestamp(0)
+	t.SetMilliTimestamp(GenesisTime * 1000)
 	for _, v := range balances {
 		t.AddOutput(v.IAddress, v.FactoshiBalance)
 	}
