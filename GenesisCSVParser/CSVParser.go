@@ -192,7 +192,6 @@ func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransacti
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		t.SetMilliTimestamp(0)
 		answer = append(answer, t)
 	}
 	genesis, err := GetGenesisBlock((GenesisTime * 1000), answer, w, inputAddress)
@@ -205,6 +204,7 @@ func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransacti
 //Creates a transaction crediting the given users
 func CreateTransaction(balances []Balance, w *wallet.SCWallet, address factoid.IAddress) (factoid.ITransaction, error) {
 	t := w.CreateTransaction(GenesisTime * 1000)
+	t.SetMilliTimestamp(0)
 	for _, v := range balances {
 		t.AddOutput(v.IAddress, v.FactoshiBalance)
 	}
@@ -261,7 +261,6 @@ func GetGenesisBlock(ftime uint64, transactions []factoid.ITransaction, w *walle
 	genesisBlock := block.NewFBlock(FactoshisPerEC, uint32(0))
 
 	t := w.CreateTransaction(ftime)
-	t.SetMilliTimestamp(0)
 	var sum uint64 = 0
 	for _, v := range transactions {
 		input, err := v.TotalInputs()
