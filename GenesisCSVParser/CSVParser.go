@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/factoid/wallet"
 	"os"
+	"sort"
 )
 
 //set to epoch time of genesis in second resolution
@@ -152,9 +153,17 @@ func EntriesToBalances(entries []Entry) ([]Balance, error) {
 		balanceMap[v.ED25519PubKey] = balance
 	}
 
+	indexes := make([]string, len(balanceMap))
+
 	answer := make([]Balance, 0, len(balanceMap))
-	for _, v := range balanceMap {
-		answer = append(answer, v)
+	i := 0
+	for k, _ := range balanceMap {
+		indexes[i] = k
+		i++
+	}
+	sort.Strings(indexes)
+	for _, v := range indexes {
+		answer = append(answer, balanceMap[v])
 	}
 
 	return answer, nil
@@ -163,7 +172,6 @@ func EntriesToBalances(entries []Entry) ([]Balance, error) {
 //TODO: double-check the magic numbers
 var MaxOutputsPerTransaction int = 250 //Hot many outputs will be included in each transaction to keep it under the size limit
 var FactoshisPerEC uint64 = 666600
-
 
 //Function that creates a set of transactions from the list of balances the users should receive, as well as the corresponding genesis transaction
 func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransaction, *wallet.SCWallet, error) {
