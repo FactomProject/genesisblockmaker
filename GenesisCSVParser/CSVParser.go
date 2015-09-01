@@ -178,7 +178,7 @@ func CreateTransactions(balances []Balance) (block.IFBlock, []factoid.ITransacti
 	answer := make([]factoid.ITransaction, 0, len(balances)/MaxOutputsPerTransaction+1)
 	w := new(wallet.SCWallet)
 	w.Init()
-	w.SetSeed([]byte("string"))
+	w.SetSeed([]byte("stringstringstringstringstringstring"))
 	inputAddress, err := w.GenerateFctAddress([]byte("Genesis"), 1, 1)
 	if err != nil {
 		return nil, nil, nil, err
@@ -261,6 +261,7 @@ func GetGenesisBlock(ftime uint64, transactions []factoid.ITransaction, w *walle
 	genesisBlock := block.NewFBlock(FactoshisPerEC, uint32(0))
 
 	t := w.CreateTransaction(ftime)
+	t.SetMilliTimestamp(0)
 	var sum uint64 = 0
 	for _, v := range transactions {
 		input, err := v.TotalInputs()
